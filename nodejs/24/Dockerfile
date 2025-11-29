@@ -2,10 +2,11 @@ FROM --platform=$TARGETOS/$TARGETARCH node:24-bookworm-slim
 
 LABEL author="ndika" maintainer="ndika@pterodactyl.io"
 
-# add container user and set stop signal
+# Add container user and set stop signal
 RUN useradd -m -d /home/container container
 STOPSIGNAL SIGINT
 
+# Install dependencies
 RUN apt update \
     && apt -y install \
         ffmpeg \
@@ -29,22 +30,26 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/* \
     && apt clean
 
+# Update npm & install TypeScript
 RUN npm install --global npm@latest typescript ts-node @types/node
 
-# install pnpm
+# Install pnpm
 RUN npm install -g corepack
 RUN corepack enable
 RUN corepack prepare pnpm@latest --activate
 
-# install pm2
+# Install pm2
 RUN npm install -g pm2
 
+# Set working user and directory
 USER container
 ENV USER=container HOME=/home/container
 WORKDIR /home/container
 
-# PERBAIKAN: Gunakan path yang benar
+# Copy entrypoint.sh yang sudah dimodifikasi
 COPY --chown=container:container ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Gunakan tini sebagai init + entrypoint
 ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 CMD ["/entrypoint.sh"]
